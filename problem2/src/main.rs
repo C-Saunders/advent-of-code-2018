@@ -39,25 +39,15 @@ fn part1(input: &str) -> Result<()> {
     Ok(())
 }
 
-/*
-The boxes will have IDs which differ by exactly one character at the same position in both strings. For example, given the following box IDs:
-
-abcde
-fghij
-klmno
-pqrst
-fguij
-axcye
-wvxyz
-
-The IDs abcde and axcye are close, but they differ by two characters (the second and fourth).
-
-However, the IDs fghij and fguij differ by exactly one character, the third (h and u). Those must be the correct boxes.
-
-What letters are common between the two correct box IDs? (In the example above, this is found by removing the differing character from either ID, producing fgij.)
-*/
-fn part2(_input: &str) -> Result<()> {
-    println!("Not implemented");
+fn part2(input: &str) -> Result<()> {
+    'outer: for (index, current_line) in input.lines().enumerate() {
+        for comparison_line in input.lines().skip(index + 1) {
+            if hamming_distance(current_line, comparison_line) == 1 {
+                println!("{} && {} = {}", current_line, comparison_line, common_chars(current_line, comparison_line));
+                break 'outer;
+            }
+        }
+    }
     Ok(())
 }
 
@@ -72,8 +62,21 @@ fn hamming_distance(s1: &str, s2: &str) -> i32 {
     distance
 }
 
+fn common_chars(s1: &str, s2: &str) -> String {
+    let mut common = "".to_string();
+    let mut s2_chars = s2.chars();
+
+    for (index, current) in s1.chars().enumerate() {
+        if s2.len() > index && current == s2_chars.nth(0).unwrap() {
+            common.push(current);
+        }
+    }
+
+    common
+}
+
 #[cfg(test)]
-mod tests {
+mod hamming_distance_tests {
     use super::hamming_distance;
 
     #[test]
@@ -89,5 +92,40 @@ mod tests {
     #[test]
     fn not_equal() {
         assert_eq!(hamming_distance("aaa", "aba"), 1)
+    }
+}
+
+#[cfg(test)]
+mod common_chars_tests {
+    use super::common_chars;
+
+    #[test]
+    fn empty() {
+        assert_eq!(common_chars("", ""), "")
+    }
+
+    #[test]
+    fn equal() {
+        assert_eq!(common_chars("aaa", "aaa"), "aaa")
+    }
+
+    #[test]
+    fn not_equal() {
+        assert_eq!(common_chars("aaa", "aba"), "aa")
+    }
+
+    #[test]
+    fn more_letters() {
+        assert_eq!(common_chars("abcdefghijk", "abzdezghijk"), "abdeghijk")
+    }
+
+    #[test]
+    fn first_shorter() {
+        assert_eq!(common_chars("aa", "aaa"), "aa")
+    }
+
+    #[test]
+    fn second_shorter() {
+        assert_eq!(common_chars("aaa", "aa"), "aa")
     }
 }
