@@ -1,0 +1,7 @@
+[package]
+name = "problem12"
+version = "0.1.0"
+authors = ["Charlie Saunders <charlieasaunders@gmail.com>"]
+edition = "2018"
+
+[dependencies]
