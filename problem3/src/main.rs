@@ -75,10 +75,10 @@ enum SquareInchStatus {
 }
 
 fn part1(input: &str) -> Result<()> {
-    let columns = 999 + 1;
+    let row_len = 999 + 1;
     let rows = 1000 + 1;
 
-    let mut fabric = vec![vec![SquareInchStatus::Unused; rows]; columns];
+    let mut fabric = vec![vec![SquareInchStatus::Unused; row_len]; rows];
     let mut overlapping_total = 0;
 
     for line in input.lines() {
@@ -87,7 +87,7 @@ fn part1(input: &str) -> Result<()> {
         println!("{:?}", parsed);
 
         for row_num in (parsed.top_edge..parsed.bottom_edge()) {
-            for col_num in (parsed.left_edge..parsed.bottom_edge()) {
+            for col_num in (parsed.left_edge..parsed.right_edge()) {
                 match fabric[row_num][col_num] {
                     SquareInchStatus::Unused => fabric[row_num][col_num] = SquareInchStatus::UsedOnce,
                     SquareInchStatus::UsedOnce => {
