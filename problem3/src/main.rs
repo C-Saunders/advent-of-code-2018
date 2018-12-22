@@ -12,7 +12,7 @@ fn main() -> Result<()> {
 }
 
 #[derive(Debug)]
-struct Area {
+struct ClaimArea {
     id: usize,
     left_edge: usize,
     top_edge: usize,
@@ -20,8 +20,8 @@ struct Area {
     height: usize,
 }
 
-impl Area {
-    fn new(specification: &str) -> Area {
+impl ClaimArea {
+    fn new(specification: &str) -> ClaimArea {
         lazy_static! {
             // #9 @ 810,143: 27x20
             // #10 @ 674,274: 25x13
@@ -30,7 +30,7 @@ impl Area {
 
         let caps = PARSING_EXPR.captures(specification).unwrap();
 
-        Area {
+        ClaimArea {
             id: caps["id"].parse::<usize>().unwrap(),
             left_edge: caps["left"].parse::<usize>().unwrap(),
             top_edge: caps["top"].parse::<usize>().unwrap(),
@@ -48,12 +48,19 @@ impl Area {
     }
 }
 
+#[derive(Clone, Debug)]
+enum SquareInchStatus {
+    Unclaimed,
+    ClaimedOnce,
+    ClaimedMultiple,
+}
+
 fn find_total_dimensions(input: &str) -> Result<()> {
     let mut max_right = 0;
     let mut max_bottom = 0;
 
     for line in input.lines() {
-        let parsed = Area::new(&line);
+        let parsed = ClaimArea::new(&line);
         if parsed.right_edge() > max_right {
             max_right = parsed.right_edge();
         }
@@ -67,34 +74,27 @@ fn find_total_dimensions(input: &str) -> Result<()> {
     Ok(())
 }
 
-#[derive(Clone, Debug)]
-enum SquareInchStatus {
-    Unused,
-    UsedOnce,
-    UsedMultiple,
-}
-
 fn part1(input: &str) -> Result<()> {
     let row_len = 999 + 1;
     let rows = 1000 + 1;
 
-    let mut fabric = vec![vec![SquareInchStatus::Unused; row_len]; rows];
+    let mut fabric = vec![vec![SquareInchStatus::Unclaimed; row_len]; rows];
     let mut overlapping_total = 0;
 
     for line in input.lines() {
-        let parsed = Area::new(&line);
+        let parsed = ClaimArea::new(&line);
 
         println!("{:?}", parsed);
 
-        for row_num in (parsed.top_edge..parsed.bottom_edge()) {
-            for col_num in (parsed.left_edge..parsed.right_edge()) {
+        for row_num in parsed.top_edge..parsed.bottom_edge() {
+            for col_num in parsed.left_edge..parsed.right_edge() {
                 match fabric[row_num][col_num] {
-                    SquareInchStatus::Unused => fabric[row_num][col_num] = SquareInchStatus::UsedOnce,
-                    SquareInchStatus::UsedOnce => {
-                        fabric[row_num][col_num] = SquareInchStatus::UsedMultiple;
+                    SquareInchStatus::Unclaimed => fabric[row_num][col_num] = SquareInchStatus::ClaimedOnce,
+                    SquareInchStatus::ClaimedOnce => {
+                        fabric[row_num][col_num] = SquareInchStatus::ClaimedMultiple;
                         overlapping_total = overlapping_total + 1;
                     }
-                    SquareInchStatus::UsedMultiple => {}
+                    SquareInchStatus::ClaimedMultiple => {}
                 }
             }
         }
