@@ -6,8 +6,7 @@ use regex::Regex;
 fn main() -> Result<()> {
     let input = fs::read_to_string("input/data.txt")?;
     find_total_dimensions(&input)?;
-    part1(&input)?;
-    part2(&input)?;
+    run(&input)?;
     Ok(())
 }
 
@@ -74,7 +73,7 @@ fn find_total_dimensions(input: &str) -> Result<()> {
     Ok(())
 }
 
-fn part1(input: &str) -> Result<()> {
+fn run(input: &str) -> Result<()> {
     let row_len = 999 + 1;
     let rows = 1000 + 1;
 
@@ -83,8 +82,6 @@ fn part1(input: &str) -> Result<()> {
 
     for line in input.lines() {
         let parsed = ClaimArea::new(&line);
-
-        println!("{:?}", parsed);
 
         for row_num in parsed.top_edge..parsed.bottom_edge() {
             for col_num in parsed.left_edge..parsed.right_edge() {
@@ -101,11 +98,30 @@ fn part1(input: &str) -> Result<()> {
     }
 
     println!("Total overlap = {}", overlapping_total);
+
+    // part 2
+    for line in input.lines() {
+        let parsed = ClaimArea::new(&line);
+        let mut no_overlaps = true;
+
+        for row_num in parsed.top_edge..parsed.bottom_edge() {
+            for col_num in parsed.left_edge..parsed.right_edge() {
+                match fabric[row_num][col_num] {
+                    SquareInchStatus::Unclaimed => panic!("No square inches should be unclaimed at this point"),
+                    SquareInchStatus::ClaimedOnce => {},
+                    SquareInchStatus::ClaimedMultiple => {
+                        no_overlaps = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if no_overlaps {
+            println!("{:?}", parsed);
+            break;
+        }
+    }
     
     Ok(())
 }
-
-fn part2(_input: &str) -> Result<()> {
-    Ok(())
-}
-
