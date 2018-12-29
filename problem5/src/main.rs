@@ -5,12 +5,38 @@ fn main() -> Result<(), String> {
     let input = fs::read_to_string("input/data.txt").map_err(|e| e.to_string())?;
 
     part1(&input).map_err(|e| e.to_string())?;
+    part2(&input).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 fn part1(input: &str) -> Result<(), String> {
     let result = perform_reactions(input);
     println!("Result = {}\nLength = {}", result, result.len());
+    Ok(())
+}
+
+fn part2(input: &str) -> Result<(), String> {
+    static ASCII_LOWER: [char; 26] = [
+        'a', 'b', 'c', 'd', 'e', 
+        'f', 'g', 'h', 'i', 'j', 
+        'k', 'l', 'm', 'n', 'o',
+        'p', 'q', 'r', 's', 't', 
+        'u', 'v', 'w', 'x', 'y', 
+        'z',
+    ];
+
+    let mut shortest_len = input.len();
+
+    for to_remove in ASCII_LOWER.iter() {
+        let filtered = input.clone().chars().filter(|ch| !ch.eq_ignore_ascii_case(to_remove)).collect::<String>();
+        let reacted_len = perform_reactions(&filtered).len();
+        if reacted_len < shortest_len {
+            shortest_len = reacted_len;
+        }
+    }
+
+    println!("{}", shortest_len);
+
     Ok(())
 }
 
@@ -39,7 +65,7 @@ fn perform_single_reaction_pass(input: &str) -> String {
                 break;
             },
             Some(next_char) => {
-                if ch.to_lowercase().to_string() == next_char.to_lowercase().to_string() && casings_are_different(&ch, &next_char) {
+                if ch.eq_ignore_ascii_case(next_char) && casings_are_different(&ch, &next_char) {
                     iter.next();
                 } else {
                     new_str.push(ch);
