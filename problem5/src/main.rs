@@ -1,21 +1,21 @@
 use std::fs;
 use std::result::Result;
+use rayon::prelude::*;
 
 fn main() -> Result<(), String> {
     let input = fs::read_to_string("input/data.txt").map_err(|e| e.to_string())?;
 
-    part1(&input).map_err(|e| e.to_string())?;
-    part2(&input).map_err(|e| e.to_string())?;
+    part1(&input);
+    part2(&input);
     Ok(())
 }
 
-fn part1(input: &str) -> Result<(), String> {
+fn part1(input: &str) -> () {
     let result = perform_reactions(input);
     println!("Result = {}\nLength = {}", result, result.len());
-    Ok(())
 }
 
-fn part2(input: &str) -> Result<(), String> {
+fn part2(input: &str) -> () {
     static ASCII_LOWER: [char; 26] = [
         'a', 'b', 'c', 'd', 'e', 
         'f', 'g', 'h', 'i', 'j', 
@@ -25,19 +25,17 @@ fn part2(input: &str) -> Result<(), String> {
         'z',
     ];
 
-    let mut shortest_len = input.len();
-
-    for to_remove in ASCII_LOWER.iter() {
+    let lengths: Vec<usize> = ASCII_LOWER.par_iter().map(|to_remove| {
         let filtered = input.clone().chars().filter(|ch| !ch.eq_ignore_ascii_case(to_remove)).collect::<String>();
-        let reacted_len = perform_reactions(&filtered).len();
-        if reacted_len < shortest_len {
-            shortest_len = reacted_len;
-        }
-    }
+        perform_reactions(&filtered).len()
+    }).collect();
 
-    println!("{}", shortest_len);
+    let minimum = lengths.into_iter().fold(None, |min, curr| match min {
+        None => Some(curr),
+        Some(new) => Some(if new < curr { new } else { curr })
+    });
 
-    Ok(())
+    println!("Min = {}", minimum.unwrap());
 }
 
 fn perform_reactions(input: &str) -> String {
