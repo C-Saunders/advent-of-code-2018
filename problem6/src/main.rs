@@ -141,9 +141,7 @@ fn find_largest_non_infinite_area(grid: &Box<Grid>, area: &Area) -> i32 {
 
     for grid_point in grid.iter() {
         let sole_closest = calculate_sole_closest(grid_point);
-        if  sole_closest.is_some() {
-            let closest = sole_closest.unwrap();
-
+        if let Some(closest) = sole_closest {
             if is_exterior_point(&grid_point.point, area) {
                 infinite_area_nodes.insert(closest);
             }
