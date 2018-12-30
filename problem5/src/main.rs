@@ -32,7 +32,7 @@ fn part2(input: &str) -> () {
 
     let minimum = lengths.into_iter().fold(None, |min, curr| match min {
         None => Some(curr),
-        Some(new) => Some(if new < curr { new } else { curr })
+        Some(existing) => Some(if existing < curr { existing } else { curr })
     });
 
     println!("Min = {}", minimum.unwrap());
