@@ -1,3 +1,4 @@
+use std::cmp;
 use std::collections::HashMap;
 use std::num::ParseIntError;
 use std::result::Result;
@@ -35,7 +36,7 @@ impl FromStr for Point {
     }
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Area {
     min_x: i32,
     min_y: i32,
@@ -47,12 +48,15 @@ impl Area {
     pub fn min_x(&self) -> i32 {
         self.min_x
     }
+
     pub fn min_y(&self) -> i32 {
         self.min_y
     }
+
     pub fn max_x(&self) -> i32 {
         self.max_x
     }
+
     pub fn max_y(&self) -> i32 {
         self.max_y
     }
@@ -64,6 +68,32 @@ impl Area {
             max_x,
             max_y,
         }
+    }
+}
+
+impl Area {
+    pub fn from_node_list(node_list: &NodeList) -> Self {
+        let mut min_x = None;
+        let mut min_y = None;
+        let mut max_x = None;
+        let mut max_y = None;
+
+        for current_point in node_list.iter() {
+            min_x = Some(min_x.map_or(current_point.x, |x| cmp::min(current_point.x, x)));
+
+            min_y = Some(min_y.map_or(current_point.y, |y| cmp::min(current_point.y, y)));
+
+            max_x = Some(max_x.map_or(current_point.x, |x| cmp::max(current_point.x, x)));
+
+            max_y = Some(max_y.map_or(current_point.y, |y| cmp::max(current_point.y, y)));
+        }
+
+        Area::new(
+            min_x.unwrap(),
+            min_y.unwrap(),
+            max_x.unwrap(),
+            max_y.unwrap(),
+        )
     }
 }
 
@@ -108,6 +138,10 @@ impl GridPoint {
             _ => None,
         }
     }
+
+    pub fn total_distance(&self) -> i32 {
+        self.distances.values().sum()
+    }
 }
 
 pub type Grid = Vec<GridPoint>;
@@ -121,8 +155,56 @@ pub fn get_node_list(input: &str) -> Result<NodeList, String> {
     Ok(node_list)
 }
 
+pub fn calculate_distances(node_list: &NodeList, total_area: &Area) -> Box<Grid> {
+    let mut grid: Grid = vec![];
+    for curr_x in total_area.min_x()..=total_area.max_x() {
+        for curr_y in total_area.min_y()..=total_area.max_y() {
+            let curr_point = Point::new(curr_x, curr_y);
+
+            let mut curr_grid_point =
+                GridPoint::new(is_exterior_point(&curr_point, &total_area), HashMap::new());
+
+            for node in node_list.iter() {
+                curr_grid_point.insert_distance(*node, manhattan_distance(&curr_point, &node));
+            }
+
+            grid.push(curr_grid_point);
+        }
+    }
+
+    Box::new(grid)
+}
+
+fn is_exterior_point(point: &Point, area: &Area) -> bool {
+    point.x == area.min_x()
+        || point.x == area.max_x()
+        || point.y == area.min_y()
+        || point.y == area.max_y()
+}
+
 pub fn manhattan_distance(p1: &Point, p2: &Point) -> i32 {
     (p1.x - p2.x).abs() + (p1.y - p2.y).abs()
+}
+
+#[cfg(test)]
+mod test_area_from_node_list {
+    use super::{get_node_list, Area};
+
+    #[test]
+    fn from_origin() {
+        assert_eq!(
+            Area::from_node_list(&get_node_list("0, 0\n1, 2\n").unwrap()),
+            Area::new(0, 0, 1, 2),
+        )
+    }
+
+    #[test]
+    fn from_non_origin() {
+        assert_eq!(
+            Area::from_node_list(&get_node_list("1, 2\n3, 7\n4, 3").unwrap()),
+            Area::new(1, 2, 4, 7),
+        )
+    }
 }
 
 #[cfg(test)]
