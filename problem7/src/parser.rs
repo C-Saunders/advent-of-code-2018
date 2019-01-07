@@ -90,16 +90,6 @@ impl StepsInProgress {
         self.0.keys().any(|key| key == &step_name)
     }
 
-    fn replace_step(
-        &mut self,
-        old_step: StepName,
-        new_step: StepName,
-        new_step_duration: TimeRemaining,
-    ) {
-        self.0.remove(&old_step);
-        self.start_step(new_step, new_step_duration);
-    }
-
     fn start_step(&mut self, new_step: StepName, new_step_duration: TimeRemaining) {
         self.0.insert(new_step, new_step_duration);
     }
@@ -187,20 +177,8 @@ impl Graph {
                 continue;
             }
 
-            let mut available_steps_iter = available_steps.iter();
-
-            // Fill open slots
-            for _ in 1..=in_progress.num_available_workers() {
-                if let Some(available) = available_steps_iter.next() {
-                    in_progress.start_step(**available, get_step_duration(**available));
-                } else {
-                    break;
-                }
-            }
-
-            // Replace completed steps
-            for (completed, available) in just_completed.iter().zip(available_steps_iter) {
-                in_progress.replace_step(*completed, **available, get_step_duration(**available));
+            for (_, available) in (1..=in_progress.num_available_workers()).zip(available_steps.iter()) {
+                in_progress.start_step(**available, get_step_duration(**available));
             }
         }
 
