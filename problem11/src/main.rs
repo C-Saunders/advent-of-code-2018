@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 
 fn main() {
+    part1();
+    part2();
+}
+
+fn part1() {
     let grid = get_populated_grid();
 
     let mut highest = 0;
@@ -8,10 +13,53 @@ fn main() {
 
     for x in 0..=297 {
         for y in 0..=297 {
-            let window_value = get_window_value((x, y), &grid);
+            let window_value = get_window_value((x, y), &grid, 3);
             if window_value > highest {
                 highest = window_value;
                 highest_point = (x, y);
+            }
+        }
+    }
+
+    dbg!(highest);
+    dbg!(highest_point);
+}
+
+// need to memoize, I think
+// maybe store last results in a HashMap based on upper corner, add just the new items on the border
+// clear the hashmap between, if you want
+fn part2() {
+    let grid = get_populated_grid();
+    let mut memo: HashMap<(i32, i32, i32), i32> = HashMap::new(); // (x, y, window size) => value
+
+    let mut highest = 0;
+    let mut highest_point = (0, 0, 1); // x, y, window_size
+
+    for window_size in 1..=300 {
+        for x in 0..=(300 - window_size) {
+            for y in 0..=(300 - window_size) {
+                let mut window_value: i32;
+
+                if window_size == 1 {
+                    window_value = *grid.get(&(x, y)).unwrap();
+                } else {
+                    window_value = *memo.get(&(x, y, window_size - 1)).unwrap();
+
+                    for add_x in x..x+window_size {
+                        window_value += grid.get(&(add_x, y + window_size - 1)).unwrap();
+                    }
+
+                    for add_y in y..y+window_size-1 { // -1 here so we don't double count the corner
+                        window_value += grid.get(&(x + window_size - 1, add_y)).unwrap();
+                    }
+                }
+
+                memo.insert((x, y, window_size), window_value);
+
+                if window_value > highest {
+                    highest = window_value;
+                    highest_point = (x, y, window_size);
+                }
             }
         }
     }
@@ -61,14 +109,14 @@ fn get_hundreds_digit(number: i32) -> i32 {
     as_str.get(index..=index).map_or(0, |v| v.parse::<i32>().unwrap())
 }
 
-fn get_window_value(point: (i32, i32), grid: &HashMap<(i32, i32), i32>)-> i32 {
+fn get_window_value(point: (i32, i32), grid: &HashMap<(i32, i32), i32>, window_size: i32)-> i32 {
     let point_x = point.0;
     let point_y = point.1;
 
     let mut sum = 0;
 
-    for x in point_x..=point_x+2 {
-        for y in point_y..=point_y+2 {
+    for x in point_x..point_x + window_size {
+        for y in point_y..point_y + window_size {
             sum += grid.get(&(x, y)).unwrap();
         }
     }
