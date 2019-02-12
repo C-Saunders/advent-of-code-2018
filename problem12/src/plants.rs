@@ -15,17 +15,23 @@ impl PlantSet {
         }
     }
 
-    pub fn get_next_generation(&self, rule_set: &HashMap<Vec<u8>, u8>) -> PlantSet {
-        let padded_copy = dbg!(self.get_padded_copy());
-        let data = padded_copy.data;
+    pub fn get_sum_of_indexes(&self) -> i32 {
+        self.data.iter().enumerate().fold(0, |acc, (index, value)| {
+            acc + ((index as i32 + self.leftmost_index) * (*value as i32))
+        })
+    }
+
+    pub fn get_next_generation(&mut self, rule_set: &HashMap<Vec<u8>, u8>) {
+        self.pad_data();
+        let data = &self.data;
         let window_size = 5;
 
         let mut output: VecDeque<u8> = VecDeque::from(vec![data[0], data[1]]);
 
         for start_index in 0..data.len() - (window_size - 1) {
             let window: Vec<u8> = data
-                .clone()
-                .into_iter()
+                .iter()
+                .cloned()
                 .skip(start_index)
                 .take(window_size)
                 .collect();
@@ -35,33 +41,25 @@ impl PlantSet {
             output.push_back(*result);
         }
 
-        dbg!(PlantSet {
-            data: output,
-            leftmost_index: padded_copy.leftmost_index,
-        }).get_trimmed_copy()
+        self.data = output;
+        self.trim_data();
     }
 
-    fn get_padded_copy(&self) -> PlantSet {
-        let padding: VecDeque<u8> = vec![0; 4].into_iter().collect();
-
-        let mut new_state = padding.clone();
-        new_state.extend(&self.data.clone());
-        new_state.append(&mut padding.clone());
-
-        PlantSet {
-            data: new_state,
-            leftmost_index: self.leftmost_index - 4,
+    fn pad_data(&mut self) {
+        for _ in 0..4 {
+            self.data.push_back(0);
+            self.data.push_front(0);
         }
+
+        self.leftmost_index -= 4;
     }
 
-    fn get_trimmed_copy(&self) -> PlantSet {
-        let mut new_data = self.data.clone();
-
+    fn trim_data(&mut self) {
         // right
         loop {
-            let popped = new_data.pop_back().expect("Failed to pop back");
+            let popped = self.data.pop_back().expect("Failed to pop back");
             if popped == 1 {
-                new_data.push_back(popped);
+                self.data.push_back(popped);
                 break;
             }
         }
@@ -69,17 +67,14 @@ impl PlantSet {
         // left
         let mut left_pop_counter = 0;
         loop {
-            let popped = new_data.pop_front().expect("Failed to pop front");
+            let popped = self.data.pop_front().expect("Failed to pop front");
             if popped == 1 {
-                new_data.push_front(popped);
+                self.data.push_front(popped);
                 break;
             }
             left_pop_counter += 1;
         }
 
-        PlantSet {
-            data: new_data,
-            leftmost_index: self.leftmost_index + left_pop_counter,
-        }
+        self.leftmost_index += left_pop_counter;
     }
 }

@@ -8,9 +8,12 @@ fn main() -> Result<(), String> {
     let rules = rule_set::get_rule_set(&input);
 
     let initial_state = "#.##.#.##..#.#...##...#......##..#..###..##..#.#.....##..###...#.#..#...######...#####..##....#..###";
-    // let initial_state = "#.##";
 
-    evaluate_generations(&initial_state, &rules, 2);
+    assert_eq!(2166, evaluate_generations(&initial_state, &rules, 20));
+    
+    // Turned out to be a pattern: 21(0{N-1})61, where N = the number of zeros
+    // Similar patterns emerged for 1E3+, etc.
+    // dbg!(evaluate_generations(&initial_state, &rules, 50000000000));
 
     Ok(())
 }
@@ -18,12 +21,13 @@ fn main() -> Result<(), String> {
 fn evaluate_generations(
     initial_state: &str,
     rules: &HashMap<Vec<u8>, u8>,
-    num_generations: u32,
-) {
-    let mut new_gen = plants::PlantSet::from_string(initial_state);
+    num_generations: u64,
+) -> i32 {
+    let mut plants = plants::PlantSet::from_string(initial_state);
 
     for _ in 0..num_generations {
-        new_gen = new_gen.get_next_generation(rules);
-        println!("{:?}", new_gen);
+        plants.get_next_generation(rules);
     }
+
+    plants.get_sum_of_indexes()
 }
