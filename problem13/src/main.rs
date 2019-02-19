@@ -1,16 +1,17 @@
-use std::collections::HashMap;
+use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 
 fn main() -> Result<(), String> {
     let input = fs::read_to_string("input/data.txt").map_err(|e| e.to_string())?;
-    let (parsed_grid, carts) = parse(&input);
+    let (mut carts, parsed_grid) = parse(&input);
 
-    dbg!(parsed_grid);
+    get_crash(&mut carts, &parsed_grid);
 
     Ok(())
 }
 
-fn parse(input: &str) -> (HashMap<Point, TrackType>, Vec<Cart>) {
+fn parse(input: &str) -> (Vec<Cart>, HashMap<Point, TrackType>) {
     let mut grid: HashMap<Point, TrackType> = HashMap::new();
     let mut carts: Vec<Cart> = vec![];
 
@@ -24,7 +25,7 @@ fn parse(input: &str) -> (HashMap<Point, TrackType>, Vec<Cart>) {
 
             let curr_point = Point::new(x_val, y_val);
 
-            if let Some(cart_orientation) = Orientation::from_char(&current) {
+            if Orientation::from_char(&current).is_some() {
                 carts.push(Cart::new(curr_point.clone(), current));
             }
 
@@ -40,11 +41,114 @@ fn parse(input: &str) -> (HashMap<Point, TrackType>, Vec<Cart>) {
         }
     }
 
-    (grid, carts)
+    (carts, grid)
+}
+
+fn get_crash(carts: &mut Vec<Cart>, tracks: &HashMap<Point, TrackType>) {
+    loop {
+        if let Some(crash_point) = do_tick(carts, tracks) {
+            dbg!(crash_point);
+            break;
+        }
+    }
+}
+
+// Return Some if there's a crash, otherwise None
+fn do_tick(carts: &mut Vec<Cart>, tracks: &HashMap<Point, TrackType>) -> Option<Point> {
+    carts.sort();
+
+    let mut occupied_points = HashSet::new();
+    for cart in carts.iter() {
+        occupied_points.insert(cart.location.clone());
+    }
+
+    for cart in carts.iter_mut() {
+        occupied_points.remove(&cart.location);
+
+        match cart.orientation {
+            Orientation::Up => {
+                cart.location.y -= 1;
+
+                match tracks.get(&cart.location).expect("Cart off the track") {
+                    TrackType::TopLeft => cart.orientation = Orientation::Right,
+                    TrackType::TopRight => cart.orientation = Orientation::Left,
+                    TrackType::Intersection => {
+                        cart.orientation = match cart.next_turn_direction {
+                            TurnDirection::Left => Orientation::Left,
+                            TurnDirection::Straight => Orientation::Up,
+                            TurnDirection::Right => Orientation::Right,
+                        };
+                        cart.next_turn_direction = cart.get_new_next_turn_direction();
+                    }
+                    _ => {}
+                }
+            }
+            Orientation::Down => {
+                cart.location.y += 1;
+
+                match tracks.get(&cart.location).expect("Cart off the track") {
+                    TrackType::BottomLeft => cart.orientation = Orientation::Right,
+                    TrackType::BottomRight => cart.orientation = Orientation::Left,
+                    TrackType::Intersection => {
+                        cart.orientation = match cart.next_turn_direction {
+                            TurnDirection::Left => Orientation::Right,
+                            TurnDirection::Straight => Orientation::Down,
+                            TurnDirection::Right => Orientation::Left,
+                        };
+                        cart.next_turn_direction = cart.get_new_next_turn_direction();
+                    }
+                    _ => {}
+                }
+            }
+            Orientation::Left => {
+                cart.location.x -= 1;
+
+                match tracks.get(&cart.location).expect("Cart off the track") {
+                    TrackType::TopLeft => cart.orientation = Orientation::Down,
+                    TrackType::BottomLeft => cart.orientation = Orientation::Up,
+                    TrackType::Intersection => {
+                        cart.orientation = match cart.next_turn_direction {
+                            TurnDirection::Left => Orientation::Down,
+                            TurnDirection::Straight => Orientation::Left,
+                            TurnDirection::Right => Orientation::Up,
+                        };
+                        cart.next_turn_direction = cart.get_new_next_turn_direction();
+                    }
+                    _ => {}
+                }
+            }
+            Orientation::Right => {
+                cart.location.x += 1;
+
+                match tracks.get(&cart.location).expect("Cart off the track") {
+                    TrackType::TopRight => cart.orientation = Orientation::Down,
+                    TrackType::BottomRight => cart.orientation = Orientation::Up,
+                    TrackType::Intersection => {
+                        cart.orientation = match cart.next_turn_direction {
+                            TurnDirection::Left => Orientation::Up,
+                            TurnDirection::Straight => Orientation::Right,
+                            TurnDirection::Right => Orientation::Down,
+                        };
+                        cart.next_turn_direction = cart.get_new_next_turn_direction();
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        if occupied_points.contains(&cart.location) {
+            return Some(cart.location);
+        }
+
+        occupied_points.insert(cart.location.clone());
+    }
+
+    None
 }
 
 type RawGrid = Vec<Vec<char>>;
 
+#[derive(Debug, Eq)]
 struct Cart {
     location: Point,
     orientation: Orientation,
@@ -56,7 +160,15 @@ impl Cart {
         Cart {
             location,
             orientation: Orientation::from_char(symbol).expect("Unknown cart symbol"),
-            next_turn_direction: TurnDirection::LEFT,
+            next_turn_direction: TurnDirection::Left,
+        }
+    }
+
+    fn get_new_next_turn_direction(&self) -> TurnDirection {
+        match self.next_turn_direction {
+            TurnDirection::Left => TurnDirection::Straight,
+            TurnDirection::Straight => TurnDirection::Right,
+            TurnDirection::Right => TurnDirection::Left,
         }
     }
 }
@@ -67,12 +179,40 @@ struct Point {
     pub y: usize,
 }
 
+impl Ord for Cart {
+    fn cmp(&self, other: &Cart) -> Ordering {
+        let self_loc = self.location;
+        let other_loc = other.location;
+
+        if self_loc.y == other_loc.y {
+            self_loc.x.cmp(&other_loc.x)
+        } else {
+            self_loc.y.cmp(&other_loc.y)
+        }
+    }
+}
+
+impl PartialOrd for Cart {
+    fn partial_cmp(&self, other: &Cart) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Cart {
+    fn eq(&self, other: &Cart) -> bool {
+        self.location == other.location
+            && self.orientation == other.orientation
+            && self.next_turn_direction == other.next_turn_direction
+    }
+}
+
 impl Point {
     fn new(x: usize, y: usize) -> Self {
         Point { x, y }
     }
 }
 
+#[derive(PartialEq, Eq, Debug)]
 enum Orientation {
     Up,
     Down,
@@ -92,10 +232,11 @@ impl Orientation {
     }
 }
 
+#[derive(PartialEq, Eq, Debug)]
 enum TurnDirection {
-    LEFT,
-    STRAIGHT,
-    RIGHT,
+    Left,
+    Straight,
+    Right,
 }
 
 #[derive(Debug)]
