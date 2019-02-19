@@ -1,3 +1,4 @@
+#![feature(drain_filter)]
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -45,25 +46,38 @@ fn parse(input: &str) -> (Vec<Cart>, HashMap<Point, TrackType>) {
 }
 
 fn get_crash(carts: &mut Vec<Cart>, tracks: &HashMap<Point, TrackType>) {
+    let mut last_len = carts.len();
     loop {
-        if let Some(crash_point) = do_tick(carts, tracks) {
-            dbg!(crash_point);
+        do_tick(carts, tracks);
+
+        if last_len != carts.len() {
+            println!("{}", carts.len());
+            last_len = carts.len();
+        }
+
+        if carts.len() <= 1 {
+            dbg!(carts);
             break;
         }
     }
 }
 
-// Return Some if there's a crash, otherwise None
-fn do_tick(carts: &mut Vec<Cart>, tracks: &HashMap<Point, TrackType>) -> Option<Point> {
+fn do_tick(carts: &mut Vec<Cart>, tracks: &HashMap<Point, TrackType>) {
     carts.sort();
 
-    let mut occupied_points = HashSet::new();
+    let mut crashed_point: Option<Point> = None;
+    let mut occupied_points: HashSet<Point> = HashSet::new();
     for cart in carts.iter() {
         occupied_points.insert(cart.location.clone());
     }
 
-    for cart in carts.iter_mut() {
+    carts.drain_filter(|cart| {
         occupied_points.remove(&cart.location);
+
+        if crashed_point.is_some() && crashed_point.unwrap() == cart.location {
+            crashed_point = None;
+            return true;
+        }
 
         match cart.orientation {
             Orientation::Up => {
@@ -136,14 +150,17 @@ fn do_tick(carts: &mut Vec<Cart>, tracks: &HashMap<Point, TrackType>) -> Option<
             }
         }
 
-        if occupied_points.contains(&cart.location) {
-            return Some(cart.location);
+        if occupied_points.contains(&cart.location) { // crash
+            crashed_point = Some(cart.location);
+            return true;
         }
 
         occupied_points.insert(cart.location.clone());
-    }
+        return false;
+    });
 
-    None
+    // need to filter again in case we got a crash in a later iteration
+    carts.drain_filter(|cart| crashed_point.is_some() && crashed_point.unwrap() == cart.location);
 }
 
 type RawGrid = Vec<Vec<char>>;
