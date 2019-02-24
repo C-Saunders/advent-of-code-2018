@@ -1,16 +1,26 @@
 fn main() {
-    part1();
-}
+    let pattern = [7, 0, 4, 3, 2, 1];
+    let len_pattern = pattern.len();
 
-fn part1() {
-    let mut recipies = vec![3, 7];
+    let mut recipies: Vec<usize> = vec![3, 7];
     let mut cursor_one = 0;
     let mut cursor_two = 1;
+    let mut check_cursor = 0;
 
     loop {
-        if recipies.len() > 704321 + 10 {
-            println!("{:?}", &recipies[704321..(704321 + 10)]);
-            break;
+        // part 1
+        // if recipies.len() > 704321 + 10 {
+        //     println!("{:?}", &recipies[704321..(704321 + 10)]);
+        //     break;
+        // }
+
+        // part 2
+        if recipies.len() >= len_pattern {
+            if recipies[check_cursor..(check_cursor + len_pattern)] == pattern {
+                dbg!(&check_cursor);
+                break;
+            }
+            check_cursor += 1;
         }
 
         let sum = recipies[cursor_one] + recipies[cursor_two];
