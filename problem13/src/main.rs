@@ -36,7 +36,7 @@ fn parse(input: &str) -> (Vec<Cart>, HashMap<Point, TrackType>) {
                 grid.insert(
                     curr_point,
                     TrackType::infer_type(&current, &curr_point, &raw_grid)
-                        .expect("Failed to inter track type"),
+                        .expect("Failed to infer track type"),
                 );
             }
         }
@@ -150,7 +150,8 @@ fn do_tick(carts: &mut Vec<Cart>, tracks: &HashMap<Point, TrackType>) {
             }
         }
 
-        if occupied_points.contains(&cart.location) { // crash
+        if occupied_points.contains(&cart.location) {
+            // crash
             crashed_point = Some(cart.location);
             return true;
         }
