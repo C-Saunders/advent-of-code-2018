@@ -40,6 +40,24 @@ struct Example<'a> {
     after: &'a str,
 }
 
+struct Instruction {
+    opcode: u32,
+    input_a: u32,
+    input_b: u32,
+    output: u32,
+}
+
+impl Instruction {
+    fn new(values: Vec<u32>) -> Self {
+        Instruction {
+            opcode: *values.get(0).unwrap(),
+            input_a: *values.get(1).unwrap(),
+            input_b: *values.get(2).unwrap(),
+            output: *values.get(3).unwrap(),
+        }
+    }
+}
+
 impl<'a> Example<'a> {
     fn new() -> Self {
         Example {
@@ -51,11 +69,13 @@ impl<'a> Example<'a> {
         Example::parse(self.before)
     }
 
-    fn parse_instruction(&self) -> Vec<u32> {
-        self.instruction
-            .split(' ')
-            .map(|item| item.parse::<u32>().expect("Failed to parse as u32"))
-            .collect()
+    fn parse_instruction(&self) -> Instruction {
+        Instruction::new(
+            self.instruction
+                .split(' ')
+                .map(|item| item.parse::<u32>().expect("Failed to parse as u32"))
+                .collect(),
+        )
     }
 
     fn parse_after(&self) -> Vec<u32> {
